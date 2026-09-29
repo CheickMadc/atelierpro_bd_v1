@@ -25,9 +25,14 @@ import unicodedata
 
 from werkzeug.security import generate_password_hash, check_password_hash
 
-DB_PATH = os.environ.get(
-    "DB_PATH",
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), "atelierpro.db"),
+# Sur Vercel (variable VERCEL définie par la plateforme), le dossier du projet
+# est en lecture seule : seul /tmp est inscriptible. ATTENTION : /tmp y est
+# temporaire, les données sont perdues à chaque redémarrage de l'instance.
+# Pour une vraie mise en ligne sur Vercel, il faut une base PostgreSQL.
+SUR_VERCEL = bool(os.environ.get("VERCEL"))
+DB_PATH = os.environ.get("DB_PATH") or (
+    "/tmp/atelierpro.db" if SUR_VERCEL
+    else os.path.join(os.path.dirname(os.path.abspath(__file__)), "atelierpro.db")
 )
 
 # Durée de l'essai gratuit à l'inscription (0 = pas d'essai, désactivé par défaut).
