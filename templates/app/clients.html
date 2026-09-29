@@ -1,0 +1,73 @@
+{% extends "app/base.html" %}
+{% block titre %}Clients{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Clients</h1><p>Fiches clients avec modèle et mesures.</p></div>
+  <details class="pop"><summary class="btn">+ Nouveau client</summary></details>
+</div>
+
+<details class="pop" id="form-client" {{ 'open' if request.args.get('ajout') }}>
+  <summary style="display:none"></summary>
+  <div class="panel" style="margin-bottom:20px">
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:14px">Nouveau client</h2>
+    <form method="post" action="{{ url_for('client_nouveau') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="row2">
+        <div class="field"><label>Nom complet *</label><input name="nom" required placeholder="Aïcha Koné"></div>
+        <div class="field"><label>Téléphone</label><input name="telephone" placeholder="+225 07 ..."></div>
+      </div>
+      <div class="field"><label>Modèle habituel</label><input name="modele" placeholder="Boubou, ensemble pagne, tailleur…"></div>
+      {% if couturiers %}
+      <div class="field"><label>Couturier attitré</label>
+        <select name="couturier_id"><option value="">— Non assigné (visible par tous) —</option>
+          {% for co in couturiers %}<option value="{{ co.id }}">{{ co.nom }}</option>{% endfor %}
+        </select></div>
+      {% endif %}
+      <label style="margin-bottom:8px">Mesures (cm)</label>
+      <div class="grid-mesures" style="margin-bottom:14px">
+        {% for k, lib in mesures_def %}
+        <div class="field" style="margin:0"><label style="font-weight:500;color:var(--muted)">{{ lib }}</label>
+          <input name="m_{{ k }}" inputmode="decimal" placeholder="—"></div>
+        {% endfor %}
+      </div>
+      <div class="field"><label>Notes</label><textarea name="notes" rows="2" placeholder="Préférences, remarques…"></textarea></div>
+      <button class="btn" type="submit">Enregistrer le client</button>
+    </form>
+  </div>
+</details>
+
+<form method="get" style="margin-bottom:16px;max-width:360px">
+  <input name="q" value="{{ recherche }}" placeholder="Rechercher un client (nom, téléphone)…">
+</form>
+
+<div class="tablewrap">
+  {% if clients %}
+  <table>
+    <thead><tr><th>Nom</th><th>Téléphone</th><th>Modèle</th><th>Mesures</th>{% if est_patron %}<th>Couturier</th>{% endif %}<th></th></tr></thead>
+    <tbody>
+    {% for c in clients %}
+      <tr>
+        <td><b>{{ c.nom }}</b></td>
+        <td class="muted">{{ c.telephone or '—' }}</td>
+        <td>{{ c.modele or '—' }}</td>
+        <td class="muted">{{ c._mesures|length }} mesure(s)</td>
+        {% if est_patron %}<td class="muted">{{ c.couturier_nom or '— (tous)' }}</td>{% endif %}
+        <td style="text-align:right"><a class="btn ghost mini" href="{{ url_for('client_detail', client_id=c.id) }}">Ouvrir</a></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">{% if recherche %}Aucun client ne correspond à « {{ recherche }} ».{% else %}Aucun client pour l'instant. Ajoutez le premier avec « + Nouveau client ».{% endif %}</div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  // Le bouton "+ Nouveau client" ouvre le formulaire
+  document.querySelector('.page-head details.pop summary').addEventListener('click', function(e){
+    e.preventDefault();
+    var f = document.getElementById('form-client'); f.open = !f.open;
+    if(f.open) f.scrollIntoView({behavior:'smooth'});
+  });
+</script>
+{% endblock %}

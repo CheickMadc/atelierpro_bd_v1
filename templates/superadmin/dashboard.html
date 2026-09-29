@@ -1,0 +1,75 @@
+{% extends "superadmin/base.html" %}
+{% block titre %}Ateliers{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Supervision de la plateforme</h1>
+  <p>Tous les ateliers abonnés à {{ plat }}.</p>
+</div>
+
+{% if mdp_defaut %}
+<div class="warn">⚠️ Le mot de passe super-admin est trop court. Choisissez un <code>SUPERADMIN_PASSWORD</code> d'au moins 12 caractères dans le fichier <code>.env</code> avant toute mise en ligne.</div>
+{% endif %}
+
+<div class="cards" style="margin-bottom:22px">
+  <div class="card kpi"><div class="l">Ateliers inscrits</div><div class="v">{{ stats.nb_ateliers }}</div></div>
+  <div class="card kpi"><div class="l">Abonnements actifs</div><div class="v" style="color:var(--green)">{{ stats.actifs }}</div></div>
+  <div class="card kpi"><div class="l">Expirés</div><div class="v" style="color:{{ '#E8705F' if stats.expires else '#fff' }}">{{ stats.expires }}</div></div>
+  <div class="card kpi"><div class="l">Couturiers</div><div class="v">{{ stats.nb_couturiers }}</div></div>
+  <div class="card kpi"><div class="l">Commandes (total)</div><div class="v">{{ stats.nb_commandes }}</div></div>
+  <div class="card kpi"><div class="l">Recette abonnements</div><div class="v">{{ stats.recette|fcfa }} <span style="font-size:15px" class="muted">F</span></div></div>
+</div>
+
+<h2 style="font-size:19px;font-weight:700;margin:0 0 12px">Ateliers</h2>
+<div class="tablewrap" style="margin-bottom:26px">
+  {% if ateliers %}
+  <table>
+    <thead><tr><th>Atelier</th><th>Responsable</th><th>Contact</th><th>Abonnement</th><th>Couturiers</th><th>Clients</th><th>Cmds</th><th>Payé</th><th></th></tr></thead>
+    <tbody>
+    {% for a in ateliers %}
+      <tr>
+        <td><b style="color:#fff">{{ a.nom }}</b></td>
+        <td class="muted">{{ a.responsable or '—' }}</td>
+        <td class="muted">{{ a.telephone or a.email }}</td>
+        <td>
+          {% if not paiement_actif %}<span class="tag t-actif">Accès libre</span>
+          {% elif a.actif %}<span class="tag {{ 't-essai' if not a.a_deja_paye else 't-actif' }}">{{ 'Essai' if not a.a_deja_paye else 'Actif' }}</span>
+            <span class="muted" style="font-size:12px">· {{ a.jours_restants }} j</span>
+          {% else %}<span class="tag t-expire">Expiré</span>{% endif %}
+        </td>
+        <td>{{ a.nb_couturiers }}</td>
+        <td>{{ a.nb_clients }}</td>
+        <td>{{ a.nb_commandes }}</td>
+        <td>{{ a.recette|fcfa }} F</td>
+        <td style="text-align:right"><a class="btn ghost mini" href="{{ url_for('superadmin_atelier', atelier_id=a.id) }}">Ouvrir</a></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">Aucun atelier inscrit pour l'instant.</div>
+  {% endif %}
+</div>
+
+<h2 style="font-size:19px;font-weight:700;margin:0 0 12px">Derniers paiements d'abonnement</h2>
+<div class="tablewrap">
+  {% if paiements %}
+  <table>
+    <thead><tr><th>Date</th><th>Atelier</th><th>Montant</th><th>Mois</th><th>Mode</th><th>Statut</th></tr></thead>
+    <tbody>
+    {% for p in paiements %}
+      <tr>
+        <td class="muted">{{ p.cree_le }}</td>
+        <td>{{ p.atelier or '—' }}</td>
+        <td><b style="color:#fff">{{ p.montant|fcfa }} F</b></td>
+        <td>{{ p.mois }}</td>
+        <td class="muted">{{ p.canal }}</td>
+        <td>{% if p.statut == 'PAYE' %}<span class="tag t-paye">Payé</span>{% else %}<span class="tag t-att">{{ p.statut }}</span>{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">Aucun paiement enregistré.</div>
+  {% endif %}
+</div>
+{% endblock %}

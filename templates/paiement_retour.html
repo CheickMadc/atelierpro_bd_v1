@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ plat }} — Résultat du paiement</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#FBF6EF;--ink:#211C18;--muted:#56504A;--line:#EADFD1;--brand:#DA4B1B;--brand-d:#C2410C;--green:#1F8A4C;--red:#C0392B;--card:#FFFFFF;--sand:#F3E7D8;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Hanken Grotesk',system-ui,sans-serif;line-height:1.5;}
+  h1{font-family:'Bricolage Grotesque',sans-serif;margin:0;letter-spacing:-.02em;}
+  a{color:var(--brand-d);text-decoration:none;}
+  .wrap{max-width:560px;margin:0 auto;padding:60px 20px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:36px;text-align:center;}
+  .ico{width:64px;height:64px;border-radius:100px;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;}
+  .recap{text-align:left;background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:24px;}
+  .l{display:flex;justify-content:space-between;font-size:14px;padding:7px 0;}
+  .l span:first-child{color:var(--muted);}
+  .l b{font-weight:600;}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;font-weight:600;font-size:16px;padding:14px 24px;border-radius:12px;background:var(--brand);color:var(--bg);margin-top:24px;}
+  .btn:hover{background:var(--brand-d);color:var(--bg);}
+  .demo{background:var(--sand);border:1px solid #E7D5BF;border-radius:12px;padding:13px 15px;font-size:13px;color:#7A5A38;margin-top:20px;text-align:left;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    {% if statut == 'REUSSI' %}
+      <div class="ico" style="background:#EAF6EE"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1F8A4C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+      <h1 style="font-size:30px;color:var(--green)">Paiement réussi</h1>
+      <p style="color:var(--muted);margin-top:8px">Merci ! Votre abonnement {{ plat }} est réglé. Un reçu vous sera envoyé.</p>
+    {% elif statut == 'EN_ATTENTE' %}
+      <div class="ico" style="background:#FDF2E3"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#DA8A1B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+      <h1 style="font-size:30px;color:#B5730F">Paiement en attente</h1>
+      <p style="color:var(--muted);margin-top:8px">Votre paiement est en cours de validation. Vous recevrez une confirmation dès qu'il est finalisé.</p>
+    {% elif statut == 'DEMO' %}
+      <div class="ico" style="background:var(--sand)"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#B5730F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg></div>
+      <h1 style="font-size:28px">Récapitulatif (mode démo)</h1>
+      <p style="color:var(--muted);margin-top:8px">Voici ce qui serait envoyé à Paystack. Aucun paiement réel n'a été déclenché.</p>
+    {% else %}
+      <div class="ico" style="background:#FBEAE8"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></div>
+      <h1 style="font-size:30px;color:var(--red)">Paiement non abouti</h1>
+      <p style="color:var(--muted);margin-top:8px">{{ message or "Le paiement n'a pas pu être confirmé. Vous pouvez réessayer." }}</p>
+    {% endif %}
+
+    {% if infos %}
+    <div class="recap">
+      {% if infos.atelier %}<div class="l"><span>Atelier</span><b>{{ infos.atelier }}</b></div>{% endif %}
+      {% if infos.montant %}<div class="l"><span>Montant</span><b>{{ '{:,}'.format(infos.montant).replace(',', ' ') }} F CFA</b></div>{% endif %}
+      {% if infos.mois %}<div class="l"><span>Durée</span><b>{{ infos.mois }} mois</b></div>{% endif %}
+      {% if infos.canal %}<div class="l"><span>Mode</span><b>{{ infos.canal }}</b></div>{% endif %}
+      {% if infos.transaction_id %}<div class="l"><span>Référence</span><b>{{ infos.transaction_id }}</b></div>{% endif %}
+    </div>
+    {% endif %}
+
+    {% if statut == 'REUSSI' and notif %}
+    <div class="recap" style="margin-top:14px">
+      <div class="l"><span>Reçu par e-mail</span><b style="color:{{ '#1F8A4C' if notif.email.ok else '#948B80' }}">{{ 'Envoyé' if notif.email.ok else 'Non envoyé' }}</b></div>
+      <div class="l"><span>Reçu par WhatsApp</span><b style="color:{{ '#1F8A4C' if notif.whatsapp.ok else '#948B80' }}">{{ 'Envoyé' if notif.whatsapp.ok else 'Non envoyé' }}</b></div>
+    </div>
+    {% if not notif.whatsapp.ok and notif.lien_whatsapp %}
+    <a class="btn" style="background:#1F8A4C;margin-top:12px" href="{{ notif.lien_whatsapp }}" target="_blank" rel="noopener">Envoyer le reçu par WhatsApp</a>
+    {% endif %}
+    {% endif %}
+
+    {% if demo %}
+    <div class="demo">Pour activer les vrais paiements : ouvrez un compte marchand sur <b>paystack.com</b>, puis renseignez <code>PAYSTACK_SECRET_KEY</code> et <code>PAIEMENT_ACTIF=1</code> (voir <code>.env.example</code>).</div>
+    {% endif %}
+
+    <a class="btn" href="/">Retour à l'accueil</a>
+  </div>
+</div>
+</body>
+</html>

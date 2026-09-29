@@ -1,0 +1,46 @@
+{% extends "app/base.html" %}
+{% block titre %}Tableau de bord{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Bonjour, {{ atelier.responsable or atelier.nom }}</h1>
+    <p>Voici l'activité de votre atelier aujourd'hui.</p></div>
+  <a class="btn" href="{{ url_for('commandes') }}">+ Nouvelle commande</a>
+</div>
+
+<div class="grid-cards" style="margin-bottom:22px">
+  <div class="card kpi"><div class="l">Commandes actives</div><div class="v">{{ stats.actives }}</div></div>
+  <div class="card kpi"><div class="l">À livrer sous 7 jours</div><div class="v">{{ stats.a_livrer }}</div></div>
+  <div class="card kpi"><div class="l">En retard</div><div class="v" style="color:{{ '#C0392B' if stats.en_retard else 'inherit' }}">{{ stats.en_retard }}</div></div>
+  <div class="card kpi"><div class="l">CA du mois (livré)</div><div class="v">{{ stats.ca_mois|fcfa }} <span style="font-size:15px" class="muted">F</span></div></div>
+  <div class="card kpi"><div class="l">Reste à encaisser</div><div class="v" style="color:{{ '#C2410C' if stats.reste_encaisser else 'inherit' }}">{{ stats.reste_encaisser|fcfa }} <span style="font-size:15px" class="muted">F</span></div></div>
+  <div class="card kpi"><div class="l">Clients</div><div class="v">{{ stats.nb_clients }}</div></div>
+  <div class="card kpi"><div class="l">Alertes stock</div><div class="v" style="color:{{ '#C0392B' if stats.alertes_stock else 'inherit' }}">{{ stats.alertes_stock }}</div></div>
+</div>
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+    <h2 style="font-size:19px;font-weight:700">Commandes à suivre</h2>
+    <a href="{{ url_for('commandes') }}" style="font-size:14px;font-weight:600">Tout voir →</a>
+  </div>
+  {% if urgentes %}
+  <div class="tablewrap" style="border:none;margin-top:10px">
+    <table>
+      <thead><tr><th>Client</th><th>Modèle</th><th>Livraison</th><th>Temps</th><th>Statut</th></tr></thead>
+      <tbody>
+      {% for c in urgentes %}
+        <tr>
+          <td><b>{{ c.client_nom or '—' }}</b></td>
+          <td>{{ c.description or '—' }}</td>
+          <td>{{ c.date_livraison or '—' }}</td>
+          <td class="muted">{{ c.chrono_secondes|duree }}</td>
+          <td><span class="tag st-{{ c.statut }}">{{ STATUTS_LABEL[c.statut] }}</span></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">Aucune commande en cours. <a href="{{ url_for('commandes') }}">Créez la première →</a></div>
+  {% endif %}
+</div>
+{% endblock %}

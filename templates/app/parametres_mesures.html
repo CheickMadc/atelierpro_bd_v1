@@ -1,0 +1,42 @@
+{% extends "app/base.html" %}
+{% block titre %}Mesures{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Champs de mesures</h1><p>Personnalisez les libellés et ajoutez vos propres champs de mesure pour les fiches clients.</p></div>
+</div>
+
+<div style="display:grid;grid-template-columns:1.2fr .8fr;gap:18px" class="row2">
+  <div class="card">
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:14px">Libellés actuels</h2>
+    {% if mesures %}
+    <form method="post" action="{{ url_for('parametres_mesures_renommer') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+        {% for k, lib in mesures %}
+        <div style="display:flex;align-items:center;gap:10px">
+          <input type="hidden" name="cle" value="{{ k }}">
+          <input name="libelle" value="{{ lib }}" style="flex:1">
+          <button class="btn ghost mini" type="submit" formaction="{{ url_for('parametres_mesures_supprimer', cle=k) }}" formnovalidate onclick="return confirm('Retirer le champ « {{ lib }} » ? (les mesures déjà enregistrées pour ce champ resteront dans la fiche client mais ne seront plus affichées)');" style="color:var(--red);border-color:#EBC9C4">✕</button>
+        </div>
+        {% endfor %}
+      </div>
+      <button class="btn" type="submit">Enregistrer les libellés</button>
+    </form>
+    {% else %}
+    <p class="muted">Aucun champ de mesure défini.</p>
+    {% endif %}
+
+    <hr style="border:none;border-top:1px solid var(--line);margin:18px 0">
+    <form method="post" action="{{ url_for('parametres_mesures_reinitialiser') }}" onsubmit="return confirm('Revenir à la liste de mesures par défaut ?');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn ghost mini" type="submit">Réinitialiser la liste par défaut</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:14px">Ajouter un champ</h2>
+    <form method="post" action="{{ url_for('parametres_mesures_ajouter') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field"><label>Nom du champ</label><input name="libelle" required placeholder="Ex. Tour de mollet"></div>
+      <button class="btn" type="submit">+ Ajouter</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

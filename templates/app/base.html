@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block titre %}{{ plat }}{% endblock %} · {{ plat }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#FBF6EF;--ink:#211C18;--muted:#6B6259;--line:#EADFD1;--brand:#DA4B1B;--brand-d:#C2410C;--dark:#211C18;--sand:#F3E7D8;--green:#1F8A4C;--card:#FFFFFF;--red:#C0392B;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Hanken Grotesk',system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;}
+  h1,h2,h3{font-family:'Bricolage Grotesque','Hanken Grotesk',sans-serif;margin:0;letter-spacing:-.02em;}
+  a{color:var(--brand-d);text-decoration:none;}
+  .layout{display:flex;min-height:100vh;}
+  /* SIDEBAR */
+  .side{width:238px;background:var(--dark);color:#E7DED3;display:flex;flex-direction:column;padding:20px 14px;position:sticky;top:0;height:100vh;}
+  .side .brand{display:flex;align-items:center;gap:10px;font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:19px;color:#fff;padding:6px 8px 18px;}
+  .side .mark{width:32px;height:32px;border-radius:9px;background:var(--brand);display:flex;align-items:center;justify-content:center;}
+  .side a.nav{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:11px;color:#CFC5B8;font-weight:500;font-size:15px;margin-bottom:3px;}
+  .side a.nav:hover{background:#2C2621;color:#fff;}
+  .side a.nav.on{background:var(--brand);color:#fff;}
+  .side .bas{margin-top:auto;}
+  .abo{background:#2C2621;border:1px solid #3A332C;border-radius:12px;padding:12px;font-size:12.5px;color:#B8AEA2;margin-bottom:10px;}
+  .abo b{color:#fff;}
+  .abo .go{display:inline-block;margin-top:8px;color:#E8A87C;font-weight:600;}
+  .side a.out{display:block;padding:10px 12px;color:#948B80;font-size:14px;}
+  /* MAIN */
+  .main{flex:1;min-width:0;}
+  .topbar{display:none;}
+  .content{padding:30px 34px 70px;max-width:1120px;}
+  .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px;}
+  .page-head h1{font-size:29px;font-weight:700;}
+  .page-head p{color:var(--muted);margin:4px 0 0;font-size:15px;}
+  /* Composants */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:600;font-size:14px;padding:11px 17px;border-radius:11px;border:none;cursor:pointer;background:var(--brand);color:#fff;}
+  .btn:hover{background:var(--brand-d);color:#fff;}
+  .btn.ghost{background:#fff;color:var(--ink);border:1.5px solid #E2D4C0;}
+  .btn.ghost:hover{border-color:var(--brand);color:var(--ink);}
+  .btn.mini{padding:6px 11px;font-size:12.5px;border-radius:9px;}
+  .btn.dark{background:#2C2621;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;}
+  .grid-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;}
+  .kpi .l{font-size:13px;color:var(--muted);font-weight:500;}
+  .kpi .v{font-family:'Bricolage Grotesque',sans-serif;font-size:30px;font-weight:700;margin-top:3px;}
+  label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin:0 0 5px;}
+  input,select,textarea{width:100%;padding:10px 12px;border:1.5px solid #E2D4C0;border-radius:10px;font:inherit;background:#fff;color:var(--ink);}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);}
+  .field{margin-bottom:13px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+  table{border-collapse:collapse;width:100%;}
+  th,td{text-align:left;padding:12px 14px;font-size:14px;border-bottom:1px solid var(--line);}
+  th{font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);background:#FCF9F4;}
+  tr:last-child td{border-bottom:none;}
+  .tablewrap{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow-x:auto;}
+  .tag{font-size:11px;font-weight:600;padding:4px 10px;border-radius:100px;display:inline-block;white-space:nowrap;}
+  .st-EN_ATTENTE{color:#6B6259;background:#EFE7DB;}
+  .st-COUPE{color:#7A5A38;background:#F3E7D8;}
+  .st-COUTURE{color:#1E5FA8;background:#E4EEF9;}
+  .st-PRETE{color:#1F6E3E;background:#EAF6EE;}
+  .st-LIVREE{color:#4C453D;background:#E4DED5;}
+  .flash{padding:12px 16px;border-radius:12px;margin-bottom:16px;font-size:14px;font-weight:500;}
+  .flash.ok{background:#EAF6EE;color:#1F6E3E;border:1px solid #C6E7D1;}
+  .flash.erreur{background:#FBEAE8;color:#B23A2E;border:1px solid #F1CFCB;}
+  .muted{color:var(--muted);}
+  .empty{padding:40px;text-align:center;color:var(--muted);}
+  details.pop{position:relative;}
+  details.pop>summary{list-style:none;cursor:pointer;}
+  details.pop>summary::-webkit-details-marker{display:none;}
+  details.pop .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-top:14px;}
+  .chip-mesure{display:flex;justify-content:space-between;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 11px;font-size:13px;}
+  .grid-mesures{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px;}
+  /* MOBILE */
+  @media (max-width:820px){
+    .layout{flex-direction:column;}
+    .side{width:auto;height:auto;position:static;flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px;padding:12px;}
+    .side .brand{padding:0 8px 0 4px;font-size:17px;}
+    .side a.nav{margin:0;padding:9px 12px;font-size:14px;}
+    .side .bas{margin:0 0 0 auto;display:flex;align-items:center;gap:6px;}
+    .abo{display:none;}
+    .content{padding:22px 18px 60px;}
+    .row2,.row3{grid-template-columns:1fr;}
+    .page-head h1{font-size:24px;}
+  }
+</style>
+{% block tete %}{% endblock %}
+</head>
+<body>
+<div class="layout">
+  <aside class="side">
+    <a class="brand" href="{{ url_for('tableau_bord') }}"><span class="mark"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#FBF6EF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6.5 8.5 4l3.5 3 3.5-3 5.5 2.5-2 4-2-1v11h-10V11l-2 1z"/></svg></span>{{ plat }}</a>
+    {% set page = request.path %}
+    <a class="nav {{ 'on' if page == url_for('tableau_bord') }}" href="{{ url_for('tableau_bord') }}">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg> Tableau de bord</a>
+    <a class="nav {{ 'on' if page.startswith('/app/clients') }}" href="{{ url_for('clients') }}">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 11h-6"/></svg> Clients</a>
+    <a class="nav {{ 'on' if page.startswith('/app/commandes') }}" href="{{ url_for('commandes') }}">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg> Commandes</a>
+    <a class="nav {{ 'on' if page.startswith('/app/stock') }}" href="{{ url_for('stock') }}">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8V7l-9-4-9 4v1"/><path d="M3 8v9l9 4 9-4V8"/><path d="m3 8 9 4 9-4"/></svg> Stock</a>
+    {% if est_patron %}
+    <a class="nav {{ 'on' if page.startswith('/app/couturiers') }}" href="{{ url_for('couturiers') }}">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-3-3.87M9 21v-2a4 4 0 0 1 3-3.87"/><circle cx="9" cy="7" r="4"/><circle cx="17" cy="9" r="3"/></svg> Couturiers</a>
+    <a class="nav {{ 'on' if page.startswith('/app/parametres') }}" href="{{ url_for('parametres_mesures') }}">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Paramètres</a>
+    {% endif %}
+
+    <div class="bas">
+      <div class="abo" style="background:#332C26;border-color:#463D34">
+        {{ utilisateur.nom }} · <b style="color:#E8A87C">{{ 'Patron' if est_patron else 'Couturier' }}</b>
+      </div>
+      <div class="abo">
+        {% if not paiement_actif %}
+          Atelier <b>{{ atelier.nom }}</b><br>Accès gratuit — phase de test
+          {% if avis_link %}<a class="go" href="{{ avis_link }}" target="_blank" rel="noopener">Donner mon avis →</a>{% endif %}
+        {% elif abo_actif %}
+          Atelier <b>{{ atelier.nom }}</b><br>Abonnement actif — {{ jours_restants }} j restants
+          <a class="go" href="{{ url_for('abonnement') }}">{{ 'Renouveler' if jours_restants <= 5 else 'Payer maintenant' }} →</a>
+        {% else %}
+          <b>Abonnement expiré</b><br>Réglez pour continuer.<a class="go" href="{{ url_for('abonnement') }}">Payer →</a>
+        {% endif %}
+      </div>
+      <a class="out" href="{{ url_for('deconnexion') }}">↩ Se déconnecter</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="content">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, m in messages %}<div class="flash {{ cat }}">{{ m }}</div>{% endfor %}
+      {% endwith %}
+      {% if not abo_actif %}
+      <div class="flash erreur">Votre accès est en période expirée. <a href="{{ url_for('abonnement') }}">Régler l'abonnement</a> pour lever la limite.</div>
+      {% endif %}
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+</div>
+{% block scripts %}{% endblock %}
+</body>
+</html>

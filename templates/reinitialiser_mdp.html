@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nouveau mot de passe — {{ plat }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#FBF6EF;--ink:#211C18;--muted:#6B6259;--line:#EADFD1;--brand:#DA4B1B;--brand-d:#C2410C;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Hanken Grotesk',system-ui,sans-serif;line-height:1.5;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:20px;}
+  h1{font-family:'Bricolage Grotesque',sans-serif;margin:0;letter-spacing:-.02em;}
+  a{color:var(--brand-d);text-decoration:none;font-weight:600;}
+  .box{width:100%;max-width:410px;}
+  .brand{display:flex;align-items:center;justify-content:center;gap:10px;font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:22px;margin-bottom:22px;}
+  .mark{width:38px;height:38px;border-radius:11px;background:var(--brand);display:flex;align-items:center;justify-content:center;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:30px;}
+  label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin:0 0 5px;}
+  input{width:100%;padding:12px 14px;border:1.5px solid #E2D4C0;border-radius:11px;font:inherit;}
+  input:focus{outline:none;border-color:var(--brand);}
+  .field{margin-bottom:14px;}
+  .btn{width:100%;padding:14px;border:none;border-radius:12px;background:var(--brand);color:#fff;font-weight:600;font-size:16px;cursor:pointer;}
+  .btn:hover{background:var(--brand-d);}
+  .flash{padding:11px 14px;border-radius:11px;margin-bottom:14px;font-size:14px;background:#FBEAE8;color:#B23A2E;border:1px solid #F1CFCB;}
+  .alt{text-align:center;margin-top:18px;font-size:14px;color:var(--muted);}
+</style>
+</head>
+<body>
+<div class="box">
+  <a href="/" class="brand" style="color:var(--ink)"><span class="mark"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#FBF6EF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6.5 8.5 4l3.5 3 3.5-3 5.5 2.5-2 4-2-1v11h-10V11l-2 1z"/></svg></span>{{ plat }}</a>
+  <div class="card">
+    <h1 style="font-size:24px;font-weight:700;margin-bottom:4px">Nouveau mot de passe</h1>
+    <p style="color:var(--muted);margin:0 0 20px">Choisissez un nouveau mot de passe pour votre compte.</p>
+    {% with messages = get_flashed_messages() %}{% for m in messages %}<div class="flash">{{ m }}</div>{% endfor %}{% endwith %}
+    <form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field"><label>Nouveau mot de passe</label><input name="mot_de_passe" type="password" required minlength="8" autofocus></div>
+      <div class="field"><label>Confirmer le mot de passe</label><input name="confirmation" type="password" required minlength="8"></div>
+      <button class="btn" type="submit">Enregistrer le mot de passe</button>
+    </form>
+  </div>
+  <div class="alt"><a href="{{ url_for('connexion') }}">← Retour à la connexion</a></div>
+</div>
+</body>
+</html>

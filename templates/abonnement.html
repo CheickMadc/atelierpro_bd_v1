@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ plat }} — Payer mon abonnement</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#FBF6EF;--ink:#211C18;--muted:#56504A;--line:#EADFD1;--brand:#DA4B1B;--brand-d:#C2410C;--dark:#211C18;--sand:#F3E7D8;--green:#1F8A4C;--card:#FFFFFF;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Hanken Grotesk',system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;}
+  h1,h2,h3{font-family:'Bricolage Grotesque','Hanken Grotesk',sans-serif;margin:0;letter-spacing:-.02em;}
+  a{color:var(--brand-d);text-decoration:none;}
+  .wrap{max-width:760px;margin:0 auto;padding:0 20px;}
+  nav{background:rgba(251,246,239,.92);border-bottom:1px solid var(--line);}
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:16px 0;}
+  .logo{display:flex;align-items:center;gap:10px;font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:20px;color:var(--ink);}
+  .mark{width:36px;height:36px;border-radius:10px;background:var(--brand);display:flex;align-items:center;justify-content:center;}
+  .grid{display:grid;grid-template-columns:1.3fr 1fr;gap:26px;margin:34px 0 60px;align-items:start;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:28px;}
+  label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:0 0 6px;}
+  .field{margin-bottom:16px;}
+  input,select{width:100%;padding:12px 14px;border:1.5px solid #E2D4C0;border-radius:11px;font:inherit;background:#fff;color:var(--ink);}
+  input:focus,select:focus{outline:none;border-color:var(--brand);}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .canaux{display:flex;flex-direction:column;gap:10px;}
+  .canal{display:flex;align-items:center;gap:12px;border:1.5px solid #E2D4C0;border-radius:12px;padding:13px 15px;cursor:pointer;}
+  .canal:hover{border-color:#D4B896;}
+  .canal input{width:auto;}
+  .canal .t{font-size:14px;font-weight:600;}
+  .canal .s{font-size:12px;color:var(--muted);}
+  .btn{display:inline-flex;width:100%;align-items:center;justify-content:center;gap:9px;font-weight:600;font-size:16px;padding:15px;border-radius:12px;border:none;cursor:pointer;background:var(--brand);color:var(--bg);}
+  .btn:hover{background:var(--brand-d);}
+  .summary{background:var(--dark);border-radius:20px;padding:26px;color:#F0E9DF;position:sticky;top:20px;}
+  .summary .amt{font-family:'Bricolage Grotesque',sans-serif;font-size:40px;font-weight:700;color:#fff;margin:6px 0 2px;}
+  .summary .per{font-size:14px;color:#B8AEA2;}
+  .line{display:flex;justify-content:space-between;font-size:14px;color:#CFC6BB;padding:9px 0;border-bottom:1px solid #332C26;}
+  .demo{background:var(--sand);border:1px solid #E7D5BF;border-radius:12px;padding:13px 15px;font-size:13px;color:#7A5A38;margin-bottom:22px;}
+  .ops{display:flex;gap:8px;align-items:center;margin-top:14px;flex-wrap:wrap;}
+  .chip{font-size:11px;font-weight:600;background:#2C2621;border:1px solid #3A332C;color:#E8A87C;padding:5px 9px;border-radius:100px;}
+  .secure{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-top:14px;justify-content:center;}
+  @media (max-width:720px){.grid{grid-template-columns:1fr;} .summary{position:static;}}
+</style>
+</head>
+<body>
+<nav><div class="wrap nav">
+  <a class="logo" href="/"><span class="mark"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#FBF6EF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6.5 8.5 4l3.5 3 3.5-3 5.5 2.5-2 4-2-1v11h-10V11l-2 1z"/></svg></span>{{ plat }}</a>
+  <a href="/" style="font-size:14px;font-weight:600;color:var(--ink)">← Retour</a>
+</div></nav>
+
+<div class="wrap">
+  {% if not paiement_actif %}
+  <div class="card" style="margin:40px 0 60px;text-align:center">
+    <h1 style="font-size:30px;font-weight:700">{{ plat }} est gratuit pour le moment</h1>
+    <p style="color:var(--muted);margin:12px auto 0;max-width:520px">Nous sommes en phase de test : toutes les fonctionnalités sont accessibles sans abonnement. Aidez-nous à améliorer l'application en partageant votre avis.</p>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:24px">
+      {% if avis_link %}<a class="btn" style="width:auto;padding:14px 22px" href="{{ avis_link }}" target="_blank" rel="noopener">Donner mon avis</a>{% endif %}
+      <a class="btn" style="width:auto;padding:14px 22px;background:var(--dark)" href="/app">Accéder à mon atelier</a>
+    </div>
+  </div>
+  {% else %}
+  <div style="margin-top:30px">
+    <h1 style="font-size:34px;font-weight:700">Payer mon abonnement</h1>
+    <p style="color:var(--muted);margin-top:8px">Réglez votre abonnement {{ plat }} par Mobile Money ou carte bancaire, en toute sécurité via Paystack.</p>
+  </div>
+
+  {% if mode_demo %}
+  <div class="demo" style="margin-top:22px">
+    <b>Mode démo</b> — la clé Paystack n'est pas encore configurée. Le formulaire fonctionne, mais aucun paiement réel n'est déclenché. Renseignez <code>PAYSTACK_SECRET_KEY</code> pour activer les paiements.
+  </div>
+  {% endif %}
+
+  <form class="grid" method="post" action="/payer"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="card">
+      <div class="two">
+        <div class="field"><label for="nom">Nom</label><input id="nom" name="nom" required placeholder="Koné"></div>
+        <div class="field"><label for="prenom">Prénom</label><input id="prenom" name="prenom" placeholder="Aïcha"></div>
+      </div>
+      <div class="field"><label for="atelier">Nom de l'atelier</label><input id="atelier" name="atelier" required placeholder="Mon atelier"></div>
+      <div class="two">
+        <div class="field"><label for="telephone">Téléphone</label><input id="telephone" name="telephone" required placeholder="+225 07 ..."></div>
+        <div class="field"><label for="email">E-mail</label><input id="email" name="email" type="email" required placeholder="vous@exemple.ci"></div>
+      </div>
+      <div class="field"><label for="mois">Durée</label>
+        <select id="mois" name="mois" onchange="maj()">
+          <option value="1">1 mois — {{ '{:,}'.format(prix_mensuel).replace(',', ' ') }} F</option>
+          <option value="3">3 mois — {{ '{:,}'.format(prix_mensuel*3).replace(',', ' ') }} F</option>
+          <option value="6">6 mois — {{ '{:,}'.format(prix_mensuel*6).replace(',', ' ') }} F</option>
+          <option value="12">12 mois — {{ '{:,}'.format(prix_mensuel*12).replace(',', ' ') }} F</option>
+        </select>
+      </div>
+      <label>Mode de paiement</label>
+      <div class="canaux">
+        <label class="canal"><input type="radio" name="canal" value="ALL" checked><span><span class="t">Mobile Money + carte</span><br><span class="s">Choisir sur la page de paiement Paystack</span></span></label>
+        <label class="canal"><input type="radio" name="canal" value="MOBILE_MONEY"><span><span class="t">Mobile Money</span><br><span class="s">Orange, MTN, Moov, Wave</span></span></label>
+        <label class="canal"><input type="radio" name="canal" value="CREDIT_CARD"><span><span class="t">Carte bancaire</span><br><span class="s">Visa / Mastercard</span></span></label>
+      </div>
+    </div>
+
+    <div class="summary">
+      <div class="per">Abonnement {{ plat }}</div>
+      <div class="amt" id="amt">{{ '{:,}'.format(prix_mensuel).replace(',', ' ') }} F</div>
+      <div class="per" id="detail">1 mois × {{ '{:,}'.format(prix_mensuel).replace(',', ' ') }} F / atelier</div>
+      <div style="height:14px"></div>
+      <div class="line"><span>Par atelier / mois</span><b style="color:#fff">{{ '{:,}'.format(prix_mensuel).replace(',', ' ') }} F</b></div>
+      <div class="line" style="border:none"><span>Devise</span><b style="color:#fff">FCFA (XOF)</b></div>
+      <div style="height:18px"></div>
+      <button class="btn" type="submit">Payer maintenant</button>
+      <div class="ops"><span class="chip">Orange</span><span class="chip">MTN</span><span class="chip">Moov</span><span class="chip">Wave</span><span class="chip">Visa</span><span class="chip">Mastercard</span></div>
+      <div class="secure"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#948B80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span style="color:#948B80">Paiement sécurisé via Paystack</span></div>
+    </div>
+  </form>
+  {% endif %}
+</div>
+
+<script>
+  var PM = {{ prix_mensuel }};
+  function fmt(n){ return n.toLocaleString('fr-FR').replace(/ /g,' ') + ' F'; }
+  function maj(){
+    var m = parseInt(document.getElementById('mois').value, 10) || 1;
+    document.getElementById('amt').textContent = fmt(PM*m);
+    document.getElementById('detail').textContent = m + (m>1?' mois':' mois') + ' × ' + fmt(PM) + ' / atelier';
+  }
+</script>
+</body>
+</html>

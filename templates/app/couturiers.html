@@ -1,0 +1,58 @@
+{% extends "app/base.html" %}
+{% block titre %}Couturiers{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Couturiers</h1><p>Créez et gérez les comptes de vos couturiers.</p></div>
+  <details class="pop"><summary class="btn">+ Nouveau couturier</summary></details>
+</div>
+
+<details class="pop" id="form-cout">
+  <summary style="display:none"></summary>
+  <div class="panel" style="margin-bottom:20px">
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:6px">Nouveau compte couturier</h2>
+    <p class="muted" style="font-size:13px;margin-bottom:14px">Le couturier se connectera avec l'e-mail et le mot de passe que vous définissez ici.</p>
+    <form method="post" action="{{ url_for('couturier_nouveau') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="row2">
+        <div class="field"><label>Nom complet *</label><input name="nom" required placeholder="Mariam Traoré"></div>
+        <div class="field"><label>Téléphone</label><input name="telephone" placeholder="+225 07 ..."></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>E-mail (identifiant) *</label><input name="email" type="email" required placeholder="mariam@atelier.ci"></div>
+        <div class="field"><label>Mot de passe *</label><input name="mot_de_passe" required minlength="8"></div>
+      </div>
+      <button class="btn" type="submit">Créer le compte</button>
+    </form>
+  </div>
+</details>
+
+<div class="tablewrap">
+  {% if couturiers %}
+  <table>
+    <thead><tr><th>Nom</th><th>E-mail</th><th>Téléphone</th><th>Commandes</th><th>En cours</th><th>État</th><th></th></tr></thead>
+    <tbody>
+    {% for co in couturiers %}
+      <tr>
+        <td><b>{{ co.nom }}</b></td>
+        <td class="muted">{{ co.email }}</td>
+        <td class="muted">{{ co.telephone or '—' }}</td>
+        <td>{{ co._stats.nb }}</td>
+        <td>{{ co._stats.en_cours }}</td>
+        <td>{% if co.actif %}<span class="tag st-PRETE">Actif</span>{% else %}<span class="tag st-LIVREE">Désactivé</span>{% endif %}</td>
+        <td style="text-align:right"><a class="btn ghost mini" href="{{ url_for('couturier_detail', couturier_id=co.id) }}">Ouvrir</a></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">Aucun couturier. Créez le premier compte avec « + Nouveau couturier ».</div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  document.querySelector('.page-head details.pop summary').addEventListener('click', function(e){
+    e.preventDefault(); var f=document.getElementById('form-cout'); f.open=!f.open;
+    if(f.open) f.scrollIntoView({behavior:'smooth'});
+  });
+</script>
+{% endblock %}

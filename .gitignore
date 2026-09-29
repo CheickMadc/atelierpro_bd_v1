@@ -1,0 +1,31 @@
+# Fichiers à ne jamais versionner / partager
+
+# --- Secrets (clés Paystack, SMTP, Twilio, mots de passe) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- Base de données (données clients, mots de passe hachés) ---
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+*.sqlite
+*.sqlite3
+*.bak
+
+# --- Python ---
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# --- Journaux, éditeurs, système ---
+*.log
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

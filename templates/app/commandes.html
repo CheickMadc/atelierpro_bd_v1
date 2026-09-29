@@ -1,0 +1,136 @@
+{% extends "app/base.html" %}
+{% block titre %}Commandes{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Commandes</h1><p>Suivi de production et temps par pièce.</p></div>
+  <details class="pop"><summary class="btn">+ Nouvelle commande</summary></details>
+</div>
+
+<details class="pop" id="form-cmd">
+  <summary style="display:none"></summary>
+  <div class="panel" style="margin-bottom:20px">
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:14px">Nouvelle commande</h2>
+    {% if clients %}
+    <form method="post" action="{{ url_for('commande_nouvelle') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="row2">
+        <div class="field"><label>Client</label>
+          <select name="client_id">
+            <option value="">— Sans client —</option>
+            {% for cl in clients %}<option value="{{ cl.id }}">{{ cl.nom }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field"><label>Modèle / description *</label><input name="description" required placeholder="Boubou brodé, ensemble 3 pièces…"></div>
+      </div>
+      <div class="row3">
+        <div class="field"><label>Prix total (F CFA)</label><input name="prix" inputmode="numeric" placeholder="0"></div>
+        <div class="field"><label>Acompte versé (F CFA)</label><input name="acompte" inputmode="numeric" placeholder="0"></div>
+        <div class="field"><label>Date de livraison</label><input name="date_livraison" type="date"></div>
+      </div>
+      {% if est_patron and couturiers %}
+      <div class="field"><label>Couturier chargé</label>
+        <select name="couturier_id"><option value="">— Non attribué —</option>
+          {% for co in couturiers %}<option value="{{ co.id }}">{{ co.nom }}</option>{% endfor %}
+        </select></div>
+      {% endif %}
+      <button class="btn" type="submit">Créer la commande</button>
+    </form>
+    {% else %}
+    <p class="muted">Ajoutez d'abord un client dans l'onglet <a href="{{ url_for('clients') }}">Clients</a> (ou créez une commande sans client).</p>
+    <form method="post" action="{{ url_for('commande_nouvelle') }}" style="margin-top:10px"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field"><label>Modèle / description *</label><input name="description" required></div>
+      <div class="row3">
+        <div class="field"><label>Prix (F CFA)</label><input name="prix" inputmode="numeric"></div>
+        <div class="field"><label>Acompte (F CFA)</label><input name="acompte" inputmode="numeric"></div>
+        <div class="field"><label>Date de livraison</label><input name="date_livraison" type="date"></div>
+      </div>
+      <button class="btn" type="submit">Créer la commande</button>
+    </form>
+    {% endif %}
+  </div>
+</details>
+
+<!-- filtres -->
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+  <a class="btn ghost mini {{ 'dark' if not statut_filtre }}" style="{{ 'color:#fff' if not statut_filtre }}" href="{{ url_for('commandes') }}">Toutes</a>
+  {% for s in STATUTS %}
+  <a class="btn ghost mini {{ 'dark' if statut_filtre==s }}" style="{{ 'color:#fff' if statut_filtre==s }}" href="{{ url_for('commandes', statut=s) }}">{{ STATUTS_LABEL[s] }}</a>
+  {% endfor %}
+</div>
+
+<div class="tablewrap">
+  {% if commandes %}
+  <table>
+    <thead><tr><th>Client</th><th>Modèle</th><th>Couturier</th><th>Livraison</th><th>Total</th><th>Reste</th><th>Temps</th><th>Statut</th><th></th></tr></thead>
+    <tbody>
+    {% for c in commandes %}
+      <tr>
+        <td><b>{{ c.client_nom or '—' }}</b></td>
+        <td><a href="{{ url_for('commande_detail', commande_id=c.id) }}">{{ c.description or 'Commande' }}</a></td>
+        <td class="muted">{{ c.couturier_nom or '—' }}</td>
+        <td class="muted">{{ c.date_livraison or '—' }}</td>
+        <td>{{ c.prix|fcfa }} F</td>
+        <td>{% if c.reste > 0 %}<b style="color:#C2410C">{{ c.reste|fcfa }} F</b>{% else %}<span class="tag st-PRETE">Soldé</span>{% endif %}</td>
+        <td>
+          <span class="chrono" data-base="{{ c._base }}" data-run="{{ '1' if c._en_cours else '0' }}"
+                style="font-variant-numeric:tabular-nums;font-weight:600;{{ 'color:var(--green)' if c._en_cours }}">
+            {{ c._base|duree }}
+          </span>
+          <form method="post" action="{{ url_for('commande_chrono', commande_id=c.id) }}" style="display:inline"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="{{ 'stop' if c._en_cours else 'start' }}">
+            <button class="btn mini {{ '' if c._en_cours else 'ghost' }}" type="submit"
+                    style="margin-left:6px;{{ 'background:var(--green)' if c._en_cours }}">
+              {{ '■ Stop' if c._en_cours else '▶ Chrono' }}
+            </button>
+          </form>
+        </td>
+        <td>
+          <form method="post" action="{{ url_for('commande_statut', commande_id=c.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <select name="statut" onchange="this.form.submit()" class="tag st-{{ c.statut }}" style="border:none;padding:5px 8px;font-weight:600;cursor:pointer">
+              {% for s in STATUTS %}<option value="{{ s }}" {{ 'selected' if s==c.statut }}>{{ STATUTS_LABEL[s] }}</option>{% endfor %}
+            </select>
+          </form>
+        </td>
+        <td style="text-align:right;white-space:nowrap">
+          <a class="btn ghost mini" href="{{ url_for('commande_detail', commande_id=c.id) }}">Ouvrir</a>
+          {% if est_patron %}
+          <form method="post" action="{{ url_for('commande_supprimer', commande_id=c.id) }}" style="display:inline" onsubmit="return confirm('Supprimer cette commande ?');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn ghost mini" style="color:var(--red);border-color:#EBC9C4" type="submit">✕</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr style="background:#FCF9F4;font-weight:600">
+        <td colspan="4" style="text-align:right">Totaux</td>
+        <td>{{ totaux.total|fcfa }} F</td>
+        <td>{% if totaux.reste %}<span style="color:#C2410C">{{ totaux.reste|fcfa }} F</span>{% else %}0 F{% endif %}</td>
+        <td colspan="3"><span class="muted" style="font-weight:500">Versé : {{ totaux.verse|fcfa }} F</span></td>
+      </tr>
+    </tfoot>
+  </table>
+  {% else %}
+  <div class="empty">Aucune commande{% if statut_filtre %} avec ce statut{% endif %}. Créez-en une avec « + Nouvelle commande ».</div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  document.querySelector('.page-head details.pop summary').addEventListener('click', function(e){
+    e.preventDefault(); var f=document.getElementById('form-cmd'); f.open=!f.open;
+    if(f.open) f.scrollIntoView({behavior:'smooth'});
+  });
+  // Chronomètres en direct (incrémentent les commandes en cours chaque seconde)
+  function fmt(s){var h=Math.floor(s/3600),m=Math.floor((s%3600)/60),x=s%60;
+    if(h) return h+' h '+String(m).padStart(2,'0');
+    if(m) return m+' min '+String(x).padStart(2,'0');
+    return x+' s';}
+  document.querySelectorAll('.chrono').forEach(function(el){
+    if(el.dataset.run==='1'){
+      var base=parseInt(el.dataset.base,10)||0, t0=Date.now();
+      setInterval(function(){ el.textContent=fmt(base+Math.floor((Date.now()-t0)/1000)); },1000);
+    }
+  });
+</script>
+{% endblock %}

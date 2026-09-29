@@ -1,0 +1,74 @@
+{% extends "app/base.html" %}
+{% block titre %}Stock{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Stock</h1><p>Tissus, fils et fournitures — avec alerte de seuil.</p></div>
+  <details class="pop"><summary class="btn">+ Ajouter un article</summary></details>
+</div>
+
+<details class="pop" id="form-stock">
+  <summary style="display:none"></summary>
+  <div class="panel" style="margin-bottom:20px">
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:14px">Nouvel article</h2>
+    <form method="post" action="{{ url_for('stock_nouveau') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="row2">
+        <div class="field"><label>Article *</label><input name="article" required placeholder="Wax Vlisco, fil noir, boutons dorés…"></div>
+        <div class="field"><label>Catégorie</label>
+          <select name="categorie">
+            <option>Tissu</option><option>Fil</option><option>Bouton</option>
+            <option>Fermeture</option><option>Doublure</option><option>Autre</option>
+          </select>
+        </div>
+      </div>
+      <div class="row3">
+        <div class="field"><label>Quantité</label><input name="quantite" inputmode="decimal" placeholder="0"></div>
+        <div class="field"><label>Unité</label>
+          <select name="unite"><option>m</option><option>rouleau</option><option>pièce</option><option>bobine</option><option>lot</option></select>
+        </div>
+        <div class="field"><label>Seuil d'alerte</label><input name="seuil" inputmode="decimal" placeholder="0"></div>
+      </div>
+      <button class="btn" type="submit">Ajouter au stock</button>
+    </form>
+  </div>
+</details>
+
+<div class="tablewrap">
+  {% if stock %}
+  <table>
+    <thead><tr><th>Article</th><th>Catégorie</th><th>Quantité</th><th>État</th><th style="text-align:right">Ajuster</th><th></th></tr></thead>
+    <tbody>
+    {% for s in stock %}
+      {% set alerte = s.seuil and s.quantite <= s.seuil %}
+      <tr>
+        <td><b>{{ s.article }}</b></td>
+        <td class="muted">{{ s.categorie or '—' }}</td>
+        <td><b>{{ '%g'|format(s.quantite) }}</b> <span class="muted">{{ s.unite or '' }}</span></td>
+        <td>{% if alerte %}<span class="tag" style="color:#B23A2E;background:#FBEAE8">Stock bas</span>{% else %}<span class="tag st-PRETE">OK</span>{% endif %}</td>
+        <td style="text-align:right">
+          <div style="display:inline-flex;gap:5px;align-items:center">
+            <form method="post" action="{{ url_for('stock_ajuster', article_id=s.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="delta" value="-1"><button class="btn ghost mini" type="submit">−1</button></form>
+            <form method="post" action="{{ url_for('stock_ajuster', article_id=s.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="delta" value="1"><button class="btn ghost mini" type="submit">+1</button></form>
+          </div>
+        </td>
+        <td style="text-align:right">
+          <form method="post" action="{{ url_for('stock_supprimer', article_id=s.id) }}" onsubmit="return confirm('Supprimer cet article ?');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn ghost mini" style="color:var(--red);border-color:#EBC9C4" type="submit">✕</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">Stock vide. Ajoutez vos tissus et fournitures avec « + Ajouter un article ».</div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  document.querySelector('.page-head details.pop summary').addEventListener('click', function(e){
+    e.preventDefault(); var f=document.getElementById('form-stock'); f.open=!f.open;
+    if(f.open) f.scrollIntoView({behavior:'smooth'});
+  });
+</script>
+{% endblock %}

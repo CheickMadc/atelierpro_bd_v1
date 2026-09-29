@@ -1,0 +1,84 @@
+{% extends "superadmin/base.html" %}
+{% block titre %}{{ a.nom }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <p style="margin:0 0 6px"><a href="{{ url_for('superadmin_dashboard') }}">← Tous les ateliers</a></p>
+  <h1>{{ a.nom }}
+    {% if not paiement_actif %}<span class="tag t-actif" style="font-size:12px;vertical-align:middle">Accès libre</span>
+    {% elif a.actif %}<span class="tag t-actif" style="font-size:12px;vertical-align:middle">Actif · {{ a.jours_restants }} j</span>
+    {% else %}<span class="tag t-expire" style="font-size:12px;vertical-align:middle">Expiré</span>{% endif %}
+  </h1>
+  <p>{{ a.responsable or '—' }} · {{ a.email }}{% if a.telephone %} · {{ a.telephone }}{% endif %} · inscrit le {{ a.cree_le[:10] if a.cree_le }}</p>
+</div>
+
+<div class="cards" style="margin-bottom:20px">
+  <div class="card kpi"><div class="l">Commandes actives</div><div class="v">{{ stats.actives }}</div></div>
+  <div class="card kpi"><div class="l">Clients</div><div class="v">{{ stats.nb_clients }}</div></div>
+  <div class="card kpi"><div class="l">CA du mois (livré)</div><div class="v">{{ stats.ca_mois|fcfa }} <span style="font-size:15px" class="muted">F</span></div></div>
+  <div class="card kpi"><div class="l">Reste à encaisser</div><div class="v">{{ stats.reste_encaisser|fcfa }} <span style="font-size:15px" class="muted">F</span></div></div>
+  <div class="card kpi"><div class="l">Fin d'abonnement</div><div class="v" style="font-size:20px">{{ a.abo_fin or '—' }}</div></div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+  <!-- GESTION ABONNEMENT -->
+  <div class="card">
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:14px">Abonnement</h2>
+    <form method="post" action="{{ url_for('superadmin_abonnement', atelier_id=a.id) }}" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:14px"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="prolonger">
+      <div style="flex:1"><label>Prolonger de</label>
+        <select name="mois"><option value="1">1 mois</option><option value="3">3 mois</option><option value="6">6 mois</option><option value="12">12 mois</option></select></div>
+      <button class="btn" type="submit">Prolonger</button>
+    </form>
+    <form method="post" action="{{ url_for('superadmin_abonnement', atelier_id=a.id) }}" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:14px"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="date">
+      <div style="flex:1"><label>Fixer une date de fin précise</label><input type="date" name="date_fin" value="{{ a.abo_fin or '' }}"></div>
+      <button class="btn ghost" type="submit">Appliquer</button>
+    </form>
+    <form method="post" action="{{ url_for('superadmin_abonnement', atelier_id=a.id) }}" onsubmit="return confirm('Suspendre l\'accès de cet atelier ?');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="suspendre">
+      <button class="btn ghost" type="submit" style="color:var(--red);border-color:#6A342C">Suspendre l'accès</button>
+    </form>
+  </div>
+
+  <!-- COUTURIERS -->
+  <div class="card">
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:6px">Couturiers ({{ couturiers|length }})</h2>
+    {% if couturiers %}
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+      {% for co in couturiers %}
+      <div style="display:flex;justify-content:space-between;border:1px solid var(--line);border-radius:11px;padding:10px 13px">
+        <div><b style="color:#fff">{{ co.nom }}</b><div class="muted" style="font-size:12px">{{ co.email }}</div></div>
+        <span class="tag {{ 't-actif' if co.actif else 't-expire' }}" style="align-self:center">{{ 'Actif' if co.actif else 'Off' }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="muted" style="margin-top:8px">Aucun couturier créé par ce patron.</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- PAIEMENTS DE L'ATELIER -->
+<h2 style="font-size:18px;font-weight:700;margin:26px 0 12px">Paiements d'abonnement de cet atelier</h2>
+<div class="tablewrap">
+  {% if paiements %}
+  <table>
+    <thead><tr><th>Date</th><th>Montant</th><th>Mois</th><th>Mode</th><th>Statut</th><th>Référence</th></tr></thead>
+    <tbody>
+    {% for p in paiements %}
+      <tr>
+        <td class="muted">{{ p.cree_le }}</td>
+        <td><b style="color:#fff">{{ p.montant|fcfa }} F</b></td>
+        <td>{{ p.mois }}</td>
+        <td class="muted">{{ p.canal }}</td>
+        <td>{% if p.statut == 'PAYE' %}<span class="tag t-paye">Payé</span>{% else %}<span class="tag t-att">{{ p.statut }}</span>{% endif %}</td>
+        <td class="muted" style="font-size:12px">{{ p.transaction_id }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">Aucun paiement pour cet atelier.</div>
+  {% endif %}
+</div>
+{% endblock %}

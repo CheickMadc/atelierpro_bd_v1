@@ -1,0 +1,71 @@
+{% extends "app/base.html" %}
+{% block titre %}{{ co.nom }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p style="margin:0 0 4px"><a href="{{ url_for('couturiers') }}">← Couturiers</a></p>
+    <h1>{{ co.nom }}</h1>
+    <p>{{ co.email }}{% if co.telephone %} · {{ co.telephone }}{% endif %}</p>
+  </div>
+  <form method="post" action="{{ url_for('couturier_supprimer', couturier_id=co.id) }}" onsubmit="return confirm('Supprimer ce compte couturier ? Ses commandes resteront dans l\'atelier.');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn ghost mini" type="submit" style="color:var(--red);border-color:#EBC9C4">Supprimer le compte</button>
+  </form>
+</div>
+
+<!-- STATS -->
+<div class="grid-cards" style="margin-bottom:18px">
+  <div class="card kpi"><div class="l">Commandes</div><div class="v">{{ stats.nb }}</div></div>
+  <div class="card kpi"><div class="l">En cours</div><div class="v">{{ stats.en_cours }}</div></div>
+  <div class="card kpi"><div class="l">Temps total</div><div class="v" style="font-size:24px">{{ stats.temps|duree }}</div></div>
+  <div class="card kpi"><div class="l">Montant total à payer</div><div class="v">{{ totaux.total|fcfa }} <span style="font-size:15px" class="muted">F</span></div></div>
+  <div class="card kpi"><div class="l">Acompte versé</div><div class="v" style="color:#1F8A4C">{{ totaux.verse|fcfa }} <span style="font-size:15px" class="muted">F</span></div></div>
+  <div class="card kpi"><div class="l">Reste à verser</div><div class="v" style="color:{{ '#C2410C' if totaux.reste else '#1F8A4C' }}">{{ totaux.reste|fcfa }} <span style="font-size:15px" class="muted">F</span></div></div>
+</div>
+
+<div style="display:grid;grid-template-columns:1.4fr .9fr;gap:18px" class="row2">
+  <!-- ACTIVITÉS -->
+  <div class="card">
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:4px">Activités (commandes)</h2>
+    <p class="muted" style="font-size:13px;margin-bottom:12px">Le patron peut consulter et supprimer les activités de ce couturier.</p>
+    {% if activites %}
+    <div class="tablewrap" style="border:none">
+      <table>
+        <thead><tr><th>Client</th><th>Modèle</th><th>Total</th><th>Reste</th><th>Statut</th><th></th></tr></thead>
+        <tbody>
+        {% for c in activites %}
+          <tr>
+            <td><b>{{ c.client_nom or '—' }}</b></td>
+            <td><a href="{{ url_for('commande_detail', commande_id=c.id) }}">{{ c.description or 'Commande' }}</a></td>
+            <td>{{ c.prix|fcfa }} F</td>
+            <td>{% if c.reste %}<span style="color:#C2410C">{{ c.reste|fcfa }} F</span>{% else %}<span class="muted">soldé</span>{% endif %}</td>
+            <td><span class="tag st-{{ c.statut }}">{{ STATUTS_LABEL[c.statut] }}</span></td>
+            <td style="text-align:right">
+              <form method="post" action="{{ url_for('commande_supprimer', commande_id=c.id) }}" onsubmit="return confirm('Supprimer cette activité ?');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn ghost mini" type="submit" style="color:var(--red);border-color:#EBC9C4">✕</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="muted">Aucune commande attribuée à ce couturier pour l'instant.</p>
+    {% endif %}
+  </div>
+
+  <!-- COMPTE -->
+  <div class="card">
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:14px">Compte</h2>
+    <form method="post" action="{{ url_for('couturier_modifier', couturier_id=co.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field"><label>Nom</label><input name="nom" value="{{ co.nom }}"></div>
+      <div class="field"><label>Téléphone</label><input name="telephone" value="{{ co.telephone or '' }}"></div>
+      <div class="field"><label>Accès</label>
+        <select name="actif"><option value="1" {{ 'selected' if co.actif }}>Actif (peut se connecter)</option>
+          <option value="0" {{ 'selected' if not co.actif }}>Désactivé</option></select></div>
+      <div class="field"><label>Nouveau mot de passe (laisser vide pour garder)</label><input name="mot_de_passe" minlength="8" placeholder="••••••"></div>
+      <button class="btn" type="submit">Enregistrer</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

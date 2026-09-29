@@ -1,0 +1,68 @@
+{% extends "app/base.html" %}
+{% block titre %}{{ c.nom }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p style="margin:0 0 4px"><a href="{{ url_for('clients') }}">← Clients</a></p>
+    <h1>{{ c.nom }}</h1>
+    <p>{{ c.telephone or 'Pas de téléphone' }}{% if c.modele %} · {{ c.modele }}{% endif %}</p>
+  </div>
+  <form method="post" action="{{ url_for('client_supprimer', client_id=c.id) }}"
+        onsubmit="return confirm('Supprimer ce client ?');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn ghost mini" type="submit" style="color:var(--red);border-color:#EBC9C4">Supprimer</button>
+  </form>
+</div>
+
+<div style="display:grid;grid-template-columns:1.15fr .85fr;gap:18px" class="row2">
+  <!-- MESURES / MODIFICATION -->
+  <div class="card">
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:14px">Fiche & mesures</h2>
+    <form method="post" action="{{ url_for('client_modifier', client_id=c.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="row2">
+        <div class="field"><label>Nom complet *</label><input name="nom" required value="{{ c.nom }}"></div>
+        <div class="field"><label>Téléphone</label><input name="telephone" value="{{ c.telephone or '' }}"></div>
+      </div>
+      <div class="field"><label>Modèle habituel</label><input name="modele" value="{{ c.modele or '' }}"></div>
+      {% if est_patron %}
+      <div class="field"><label>Couturier attitré</label>
+        <select name="couturier_id"><option value="">— Non assigné (visible par tous) —</option>
+          {% for co in couturiers %}<option value="{{ co.id }}" {{ 'selected' if co.id==c.couturier_id }}>{{ co.nom }}</option>{% endfor %}
+        </select></div>
+      {% elif c.couturier_nom %}
+      <div class="field"><label>Couturier attitré</label><input value="{{ c.couturier_nom }}" disabled></div>
+      {% endif %}
+      <label style="margin-bottom:8px">Mesures (cm)</label>
+      <div class="grid-mesures" style="margin-bottom:14px">
+        {% for k, lib in mesures_def %}
+        <div class="field" style="margin:0"><label style="font-weight:500;color:var(--muted)">{{ lib }}</label>
+          <input name="m_{{ k }}" inputmode="decimal" value="{{ c._mesures.get(k, '') }}" placeholder="—"></div>
+        {% endfor %}
+      </div>
+      <div class="field"><label>Notes</label><textarea name="notes" rows="2">{{ c.notes or '' }}</textarea></div>
+      <button class="btn" type="submit">Enregistrer</button>
+    </form>
+  </div>
+
+  <!-- COMMANDES DU CLIENT -->
+  <div class="card">
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:6px">Commandes ({{ commandes|length }})</h2>
+    {% if commandes %}
+    <div style="display:flex;flex-direction:column;gap:9px;margin-top:10px">
+      {% for c in commandes %}
+      <div style="border:1px solid var(--line);border-radius:12px;padding:12px 14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <b>{{ c.description or 'Commande' }}</b>
+          <span class="tag st-{{ c.statut }}">{{ STATUTS_LABEL[c.statut] }}</span>
+        </div>
+        <div class="muted" style="font-size:13px;margin-top:4px">
+          {{ c.prix|fcfa }} F · livraison {{ c.date_livraison or '—' }} · {{ c.chrono_secondes|duree }}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="muted" style="margin-top:8px">Aucune commande. <a href="{{ url_for('commandes') }}">En créer une →</a></p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

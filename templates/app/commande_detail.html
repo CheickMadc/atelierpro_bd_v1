@@ -1,0 +1,106 @@
+{% extends "app/base.html" %}
+{% block titre %}Commande{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p style="margin:0 0 4px"><a href="{{ url_for('commandes') }}">← Commandes</a></p>
+    <h1>{{ c.description or 'Commande' }}</h1>
+    <p>{{ c.client_nom or 'Sans client' }}{% if c.client_tel %} · {{ c.client_tel }}{% endif %} · <span class="tag st-{{ c.statut }}">{{ STATUTS_LABEL[c.statut] }}</span></p>
+  </div>
+  {% if est_patron %}
+  <form method="post" action="{{ url_for('commande_supprimer', commande_id=c.id) }}" onsubmit="return confirm('Supprimer cette commande ?');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn ghost mini" type="submit" style="color:var(--red);border-color:#EBC9C4">Supprimer</button>
+  </form>
+  {% endif %}
+</div>
+
+<!-- RÉSUMÉ FINANCIER -->
+<div class="grid-cards" style="margin-bottom:18px">
+  <div class="card kpi"><div class="l">Montant total à payer</div><div class="v">{{ c.prix|fcfa }} <span style="font-size:15px" class="muted">F</span></div></div>
+  <div class="card kpi"><div class="l">Acompte / versé</div><div class="v" style="color:#1F8A4C">{{ c.verse|fcfa }} <span style="font-size:15px" class="muted">F</span></div></div>
+  <div class="card kpi"><div class="l">Reste à verser</div><div class="v" style="color:{{ '#C2410C' if c.reste else '#1F8A4C' }}">{{ c.reste|fcfa }} <span style="font-size:15px" class="muted">F</span></div></div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px" class="row2">
+  <!-- PAIEMENTS -->
+  <div class="card">
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:4px">Paiements</h2>
+    <p class="muted" style="font-size:13px;margin-bottom:14px">Historique des versements du client.</p>
+    {% if versements %}
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+      {% for v in versements %}
+      <div style="display:flex;justify-content:space-between;align-items:center;border:1px solid var(--line);border-radius:11px;padding:10px 13px">
+        <div>
+          <b>{{ v.montant|fcfa }} F</b> <span class="muted" style="font-size:13px">· {{ v.moyen or 'espèces' }}</span>
+          <div class="muted" style="font-size:12px">{{ v.cree_le }}{% if v.note %} — {{ v.note }}{% endif %}{% if v.par %} · {{ v.par }}{% endif %}</div>
+        </div>
+        {% if est_patron %}
+        <form method="post" action="{{ url_for('versement_supprimer', commande_id=c.id, versement_id=v.id) }}" onsubmit="return confirm('Supprimer ce versement ?');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn ghost mini" type="submit" style="color:var(--red);border-color:#EBC9C4">✕</button>
+        </form>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="muted" style="margin-bottom:16px">Aucun versement enregistré.</p>
+    {% endif %}
+
+    {% if c.reste > 0 %}
+    <form method="post" action="{{ url_for('commande_versement', commande_id=c.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="row2">
+        <div class="field"><label>Nouveau versement (F CFA)</label><input name="montant" inputmode="numeric" required placeholder="0"></div>
+        <div class="field"><label>Moyen</label>
+          <select name="moyen"><option>Espèces</option><option>Orange Money</option><option>MTN MoMo</option><option>Moov Money</option><option>Wave</option><option>Carte</option><option>Virement</option></select>
+        </div>
+      </div>
+      <div class="field"><label>Note (facultatif)</label><input name="note" placeholder="Ex. solde à la livraison"></div>
+      <button class="btn" type="submit">Enregistrer le versement</button>
+    </form>
+    {% else %}
+    <div class="flash ok" style="margin:0">Cette commande est entièrement soldée. ✅</div>
+    {% endif %}
+  </div>
+
+  <!-- DÉTAILS + CHRONO -->
+  <div class="card">
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:14px">Détails</h2>
+    <form method="post" action="{{ url_for('commande_modifier', commande_id=c.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field"><label>Modèle / description</label><input name="description" value="{{ c.description or '' }}"></div>
+      <div class="row2">
+        <div class="field"><label>Prix total (F CFA)</label><input name="prix" inputmode="numeric" value="{{ c.prix or 0 }}"></div>
+        <div class="field"><label>Date de livraison</label><input name="date_livraison" type="date" value="{{ c.date_livraison or '' }}"></div>
+      </div>
+      {% if est_patron %}
+      <div class="field"><label>Couturier chargé</label>
+        <select name="couturier_id"><option value="">— Non attribué —</option>
+          {% for co in couturiers %}<option value="{{ co.id }}" {{ 'selected' if co.id==c.couturier_id }}>{{ co.nom }}</option>{% endfor %}
+        </select></div>
+      {% else %}
+      <div class="field"><label>Couturier chargé</label><input value="{{ c.couturier_nom or '—' }}" disabled></div>
+      {% endif %}
+      <button class="btn" type="submit">Enregistrer</button>
+    </form>
+
+    <hr style="border:none;border-top:1px solid var(--line);margin:18px 0">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div><div class="muted" style="font-size:13px">Temps de travail cumulé</div>
+        <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:22px;font-weight:700">{{ c.chrono_secondes|duree }}</div></div>
+      <div style="display:flex;gap:8px">
+        <form method="post" action="{{ url_for('commande_chrono', commande_id=c.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="{{ 'stop' if c.chrono_debut else 'start' }}">
+          <button class="btn {{ '' if c.chrono_debut else 'ghost' }}" type="submit" style="{{ 'background:var(--green)' if c.chrono_debut }}">{{ '■ Arrêter' if c.chrono_debut else '▶ Chrono' }}</button>
+        </form>
+      </div>
+    </div>
+    <div style="margin-top:16px">
+      <label>Statut</label>
+      <form method="post" action="{{ url_for('commande_statut', commande_id=c.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <select name="statut" onchange="this.form.submit()">
+          {% for s in STATUTS %}<option value="{{ s }}" {{ 'selected' if s==c.statut }}>{{ STATUTS_LABEL[s] }}</option>{% endfor %}
+        </select>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
