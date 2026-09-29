@@ -37,12 +37,14 @@ DATABASE_URL = (os.environ.get("DATABASE_URL") or os.environ.get("POSTGRES_URL")
 POSTGRES = DATABASE_URL.startswith(("postgres://", "postgresql://"))
 SUR_VERCEL = bool(os.environ.get("VERCEL"))
 
+# Sur Vercel, un fichier SQLite serait effacé à chaque redémarrage : sans
+# PostgreSQL, l'application n'utilise AUCUNE base et affiche une page
+# d'erreur de configuration (voir app.py) plutôt que de perdre les comptes.
+CONFIG_ERREUR = None
 if SUR_VERCEL and not POSTGRES:
-    # Sur Vercel, un fichier SQLite serait effacé à chaque redémarrage : on
-    # refuse de démarrer plutôt que de perdre silencieusement les comptes.
-    raise RuntimeError(
-        "DATABASE_URL manquante : sur Vercel, AtelierPro exige une base PostgreSQL "
-        "(Neon). Ajoutez DATABASE_URL dans Settings > Environment Variables.")
+    CONFIG_ERREUR = ("La variable DATABASE_URL est absente. Sur Vercel, ajoutez l'adresse "
+                     "de votre base Neon dans Settings > Environment Variables "
+                     "(environnement Production), puis redéployez.")
 
 DB_PATH = os.environ.get("DB_PATH") or os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "atelierpro.db")

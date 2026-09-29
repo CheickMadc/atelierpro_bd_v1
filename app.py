@@ -34,6 +34,7 @@ import functools
 from urllib.parse import urlparse, quote
 
 import requests
+from markupsafe import escape
 from flask import (
     Flask, render_template, request, redirect, url_for, session, abort, flash
 )
@@ -48,9 +49,31 @@ except ImportError:
 import db
 import notifications
 
-db.init_db()
+# Préparation de la base. En cas de problème de configuration (variable
+# manquante, base injoignable...), l'application affiche une page explicite
+# au lieu de planter (sur Vercel : "500 FUNCTION_INVOCATION_FAILED").
+ERREUR_DEMARRAGE = db.CONFIG_ERREUR
+if not ERREUR_DEMARRAGE:
+    try:
+        db.init_db()
+    except Exception as e:  # le détail complet part dans les logs, pas sur la page
+        import traceback
+        traceback.print_exc()
+        ERREUR_DEMARRAGE = ("Connexion à la base de données impossible (%s). Vérifiez "
+                            "l'adresse DATABASE_URL (Neon) et que la base est active."
+                            % type(e).__name__)
 
 app = Flask(__name__)
+
+
+@app.before_request
+def verifier_demarrage():
+    if ERREUR_DEMARRAGE:
+        print("[AtelierPro] " + ERREUR_DEMARRAGE)
+        return ("<!doctype html><meta charset='utf-8'><title>AtelierPro — maintenance</title>"
+                "<div style='font-family:system-ui;max-width:560px;margin:80px auto;padding:0 16px'>"
+                "<h1>Configuration incomplète</h1><p>%s</p></div>"
+                % escape(ERREUR_DEMARRAGE)), 503
 
 # --- Sécurité ----------------------------------------------------------------
 # Mode debug uniquement si explicitement demandé (jamais en production :
