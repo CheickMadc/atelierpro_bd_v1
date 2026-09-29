@@ -1,8 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Base de données SQLite pour AtelierPro.
+Base de données d'AtelierPro.
 
-Un simple fichier (atelierpro.db), aucun serveur à installer.
+  - En ligne : PostgreSQL (ex. Neon), dès que DATABASE_URL est défini.
+    Les données sont conservées durablement.
+  - En local : SQLite, un simple fichier (atelierpro.db), rien à installer.
+
+Le même code SQL sert aux deux : une petite couche de compatibilité
+(voir _Connexion) adapte les différences de syntaxe.
+
 Contient tout le cœur de la plateforme :
   - ateliers      : les comptes (patrons), avec abonnement
   - clients       : fiches clients + mesures (par atelier)
@@ -11,8 +17,7 @@ Contient tout le cœur de la plateforme :
   - transactions  : paiements Paystack
 
 Chaque donnée est rattachée à un atelier (atelier_id) : un patron ne voit
-que SON atelier. Pour passer plus tard à PostgreSQL/MySQL, seul ce fichier
-serait à adapter.
+que SON atelier.
 """
 
 import os
@@ -25,15 +30,26 @@ import unicodedata
 
 from werkzeug.security import generate_password_hash, check_password_hash
 
-# Sur Vercel (variable VERCEL définie par la plateforme), le dossier du projet
-# est en lecture seule : seul /tmp est inscriptible. ATTENTION : /tmp y est
-# temporaire, les données sont perdues à chaque redémarrage de l'instance.
-# Pour une vraie mise en ligne sur Vercel, il faut une base PostgreSQL.
+# --- Choix de la base ---------------------------------------------------------
+# DATABASE_URL (ou POSTGRES_URL, défini par l'intégration Neon de Vercel)
+# -> PostgreSQL. Sinon -> fichier SQLite local.
+DATABASE_URL = (os.environ.get("DATABASE_URL") or os.environ.get("POSTGRES_URL") or "").strip()
+POSTGRES = DATABASE_URL.startswith(("postgres://", "postgresql://"))
 SUR_VERCEL = bool(os.environ.get("VERCEL"))
-DB_PATH = os.environ.get("DB_PATH") or (
-    "/tmp/atelierpro.db" if SUR_VERCEL
-    else os.path.join(os.path.dirname(os.path.abspath(__file__)), "atelierpro.db")
-)
+
+if SUR_VERCEL and not POSTGRES:
+    # Sur Vercel, un fichier SQLite serait effacé à chaque redémarrage : on
+    # refuse de démarrer plutôt que de perdre silencieusement les comptes.
+    raise RuntimeError(
+        "DATABASE_URL manquante : sur Vercel, AtelierPro exige une base PostgreSQL "
+        "(Neon). Ajoutez DATABASE_URL dans Settings > Environment Variables.")
+
+DB_PATH = os.environ.get("DB_PATH") or os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "atelierpro.db")
+
+if POSTGRES:
+    import psycopg
+    from psycopg.rows import dict_row
 
 # Durée de l'essai gratuit à l'inscription (0 = pas d'essai, désactivé par défaut).
 try:
@@ -55,7 +71,66 @@ DEFAULT_MESURES = [
 ]
 
 
+# Tables dont la clé est un id auto-incrémenté (pour renvoyer lastrowid)
+_TABLES_AVEC_ID = ("ateliers", "clients", "commandes", "stock", "couturiers",
+                   "paiements_commande")
+_RE_INSERT = re.compile(r"^\s*INSERT\s+INTO\s+(\w+)", re.I)
+
+
+class _Curseur:
+    """Curseur PostgreSQL qui expose lastrowid comme sqlite3."""
+
+    def __init__(self, cur, lastrowid=None):
+        self._cur = cur
+        self.lastrowid = lastrowid
+
+    def fetchone(self):
+        return self._cur.fetchone()
+
+    def fetchall(self):
+        return self._cur.fetchall()
+
+
+class _Connexion:
+    """Connexion PostgreSQL utilisable comme une connexion sqlite3 :
+    - placeholders ? et :nom convertis en %s et %(nom)s ;
+    - lastrowid via RETURNING id ;
+    - `with get_conn() as c:` valide (commit) ou annule, puis ferme."""
+
+    def __init__(self):
+        self._conn = psycopg.connect(DATABASE_URL, row_factory=dict_row, connect_timeout=10)
+
+    def execute(self, sql, params=()):
+        if isinstance(params, dict):
+            sql = re.sub(r"(?<!:):(\w+)", r"%(\1)s", sql)
+        else:
+            sql = sql.replace("?", "%s")
+        m = _RE_INSERT.match(sql)
+        avec_id = bool(m and m.group(1).lower() in _TABLES_AVEC_ID
+                       and "returning" not in sql.lower())
+        if avec_id:
+            sql = sql.rstrip().rstrip(";") + " RETURNING id"
+        cur = self._conn.execute(sql, params)
+        lastrowid = cur.fetchone()["id"] if avec_id else None
+        return _Curseur(cur, lastrowid)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        try:
+            if exc_type is None:
+                self._conn.commit()
+            else:
+                self._conn.rollback()
+        finally:
+            self._conn.close()
+        return False
+
+
 def get_conn():
+    if POSTGRES:
+        return _Connexion()
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     # Le mode WAL nécessite un verrouillage par mémoire partagée (fichier -shm)
@@ -65,6 +140,12 @@ def get_conn():
     conn.execute("PRAGMA journal_mode=DELETE;")
     conn.execute("PRAGMA foreign_keys=ON;")
     return conn
+
+
+# Syntaxe propre à chaque moteur
+_PK_AUTO = "SERIAL PRIMARY KEY" if POSTGRES else "INTEGER PRIMARY KEY AUTOINCREMENT"
+_LIKE = "ILIKE" if POSTGRES else "LIKE"  # recherche insensible à la casse
+_REEL = "DOUBLE PRECISION" if POSTGRES else "REAL"  # REAL = faible précision en PostgreSQL
 
 
 def _maintenant():
@@ -82,7 +163,7 @@ def init_db():
     with get_conn() as c:
         c.execute("""
             CREATE TABLE IF NOT EXISTS ateliers (
-                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                id            %s,
                 nom           TEXT NOT NULL,
                 responsable   TEXT,
                 email         TEXT UNIQUE NOT NULL,
@@ -92,10 +173,10 @@ def init_db():
                 abo_fin       TEXT,
                 cree_le       TEXT
             )
-        """)
+        """ % _PK_AUTO)
         c.execute("""
             CREATE TABLE IF NOT EXISTS clients (
-                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                id          %s,
                 atelier_id  INTEGER NOT NULL,
                 nom         TEXT NOT NULL,
                 telephone   TEXT,
@@ -104,10 +185,10 @@ def init_db():
                 notes       TEXT,
                 cree_le     TEXT
             )
-        """)
+        """ % _PK_AUTO)
         c.execute("""
             CREATE TABLE IF NOT EXISTS commandes (
-                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                id              %s,
                 atelier_id      INTEGER NOT NULL,
                 client_id       INTEGER,
                 description     TEXT,
@@ -120,19 +201,19 @@ def init_db():
                 chrono_debut    TEXT,
                 cree_le         TEXT
             )
-        """)
+        """ % _PK_AUTO)
         c.execute("""
             CREATE TABLE IF NOT EXISTS stock (
-                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                id          %s,
                 atelier_id  INTEGER NOT NULL,
                 article     TEXT NOT NULL,
                 categorie   TEXT,
-                quantite    REAL DEFAULT 0,
+                quantite    %s DEFAULT 0,
                 unite       TEXT,
-                seuil       REAL DEFAULT 0,
+                seuil       %s DEFAULT 0,
                 cree_le     TEXT
             )
-        """)
+        """ % (_PK_AUTO, _REEL, _REEL))
         c.execute("""
             CREATE TABLE IF NOT EXISTS transactions (
                 transaction_id TEXT PRIMARY KEY,
@@ -154,7 +235,7 @@ def init_db():
         """)
         c.execute("""
             CREATE TABLE IF NOT EXISTS couturiers (
-                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                id            %s,
                 atelier_id    INTEGER NOT NULL,
                 nom           TEXT NOT NULL,
                 email         TEXT UNIQUE NOT NULL,
@@ -163,10 +244,10 @@ def init_db():
                 actif         INTEGER DEFAULT 1,
                 cree_le       TEXT
             )
-        """)
+        """ % _PK_AUTO)
         c.execute("""
             CREATE TABLE IF NOT EXISTS paiements_commande (
-                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                id           %s,
                 atelier_id   INTEGER NOT NULL,
                 commande_id  INTEGER NOT NULL,
                 montant      INTEGER DEFAULT 0,
@@ -175,7 +256,7 @@ def init_db():
                 par          TEXT,
                 cree_le      TEXT
             )
-        """)
+        """ % _PK_AUTO)
         # Petites migrations pour les bases déjà existantes
         _ajouter_colonne(c, "transactions", "atelier_id", "INTEGER")
         _ajouter_colonne(c, "transactions", "recu_envoye", "INTEGER DEFAULT 0")
@@ -189,6 +270,9 @@ def init_db():
 
 
 def _ajouter_colonne(c, table, colonne, definition):
+    if POSTGRES:
+        c.execute("ALTER TABLE %s ADD COLUMN IF NOT EXISTS %s %s" % (table, colonne, definition))
+        return
     cols = [r["name"] for r in c.execute("PRAGMA table_info(%s)" % table).fetchall()]
     if colonne not in cols:
         c.execute("ALTER TABLE %s ADD COLUMN %s %s" % (table, colonne, definition))
@@ -522,7 +606,7 @@ def lister_clients(atelier_id, recherche=None, visible_pour_couturier=None):
     params = [atelier_id]
     if recherche:
         like = "%" + recherche + "%"
-        q += " AND (cl.nom LIKE ? OR cl.telephone LIKE ?)"
+        q += " AND (cl.nom %s ? OR cl.telephone %s ?)" % (_LIKE, _LIKE)
         params += [like, like]
     if visible_pour_couturier:
         q += " AND (cl.couturier_id IS NULL OR cl.couturier_id = ?)"
@@ -719,8 +803,10 @@ def lister_stock(atelier_id):
 
 def ajuster_quantite(atelier_id, article_id, delta):
     with get_conn() as c:
-        c.execute("""UPDATE stock SET quantite = MAX(0, quantite + ?)
-                     WHERE id=? AND atelier_id=?""", (delta, article_id, atelier_id))
+        # CASE plutôt que MAX()/GREATEST() : compatible SQLite et PostgreSQL
+        c.execute("""UPDATE stock
+                     SET quantite = CASE WHEN quantite + ? < 0 THEN 0 ELSE quantite + ? END
+                     WHERE id=? AND atelier_id=?""", (delta, delta, article_id, atelier_id))
 
 
 def maj_article(atelier_id, article_id, article, categorie, quantite, unite, seuil):
@@ -811,11 +897,17 @@ def stats_couturier(atelier_id, couturier_id):
 def enregistrer_transaction(infos):
     with get_conn() as c:
         c.execute("""
-            INSERT OR REPLACE INTO transactions
+            INSERT INTO transactions
               (transaction_id, atelier_id, atelier, nom, prenom, email, telephone,
                mois, montant, canal, statut, payment_token, recu_envoye, cree_le, paye_le)
             VALUES (:transaction_id, :atelier_id, :atelier, :nom, :prenom, :email, :telephone,
                     :mois, :montant, :canal, :statut, :payment_token, :recu_envoye, :cree_le, :paye_le)
+            ON CONFLICT (transaction_id) DO UPDATE SET
+              atelier_id=excluded.atelier_id, atelier=excluded.atelier, nom=excluded.nom,
+              prenom=excluded.prenom, email=excluded.email, telephone=excluded.telephone,
+              mois=excluded.mois, montant=excluded.montant, canal=excluded.canal,
+              statut=excluded.statut, payment_token=excluded.payment_token,
+              recu_envoye=excluded.recu_envoye, cree_le=excluded.cree_le, paye_le=excluded.paye_le
         """, {
             "transaction_id": infos.get("transaction_id"),
             "atelier_id": infos.get("atelier_id"),

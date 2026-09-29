@@ -1,5 +1,7 @@
 Flask>=3.0
 requests>=2.31
 python-dotenv>=1.0
+# PostgreSQL (Neon) en ligne ; inutile en local avec SQLite
+psycopg[binary]>=3.2
 # Pour la mise en ligne (optionnel) :
 # gunicorn>=21.0
